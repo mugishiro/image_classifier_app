@@ -1,13 +1,13 @@
 from flask import Flask, request, jsonify, render_template
 import os
 from werkzeug.utils import secure_filename
-from image_classifier_onnx import ImageClassifierONNX
+from image_classifier_simple import ImageClassifierSimple
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10MB制限
 
 # 画像分類器を初期化
-classifier = ImageClassifierONNX()
+classifier = ImageClassifierSimple()
 
 # アップロードフォルダの作成
 UPLOAD_FOLDER = 'uploads'
