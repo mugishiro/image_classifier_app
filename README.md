@@ -27,10 +27,12 @@ cd image_classifier_app
 
 2. 必要なライブラリをインストール
 ```bash
-pip3 install torch torchvision torchaudio flask pillow numpy
+pip3 install -r requirements.txt
 ```
 
 ## 使用方法
+
+### ローカル実行
 
 1. アプリケーションを起動
 ```bash
@@ -43,6 +45,13 @@ http://localhost:5000
 ```
 
 3. 画像をアップロードして分類結果を確認
+
+### Railwayデプロイ
+
+1. Railwayアカウントを作成
+2. GitHubリポジトリを連携
+3. 自動デプロイが開始されます
+4. デプロイ完了後、提供されるURLでアクセス
 
 ## プロジェクト構造
 
