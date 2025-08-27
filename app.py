@@ -1,13 +1,19 @@
 from flask import Flask, request, jsonify, render_template
 import os
+import sys
 from werkzeug.utils import secure_filename
-from image_classifier_simple import ImageClassifierSimple
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10MB制限
 
-# 画像分類器を初期化
-classifier = ImageClassifierSimple()
+# 画像分類器を初期化（エラーハンドリング付き）
+try:
+    from image_classifier_simple import ImageClassifierSimple
+    classifier = ImageClassifierSimple()
+    print("画像分類器の初期化が完了しました")
+except Exception as e:
+    print(f"画像分類器の初期化エラー: {e}")
+    classifier = None
 
 # アップロードフォルダの作成
 UPLOAD_FOLDER = 'uploads'
@@ -18,9 +24,35 @@ if not os.path.exists(UPLOAD_FOLDER):
 def index():
     return render_template('index.html')
 
+@app.route('/health')
+def health():
+    """ヘルスチェック用エンドポイント"""
+    try:
+        if classifier is None:
+            return jsonify({
+                'status': 'unhealthy',
+                'message': 'Image classifier not initialized'
+            }), 500
+        
+        return jsonify({
+            'status': 'healthy',
+            'message': 'Image Classifier App is running'
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'message': f'Health check failed: {str(e)}'
+        }), 500
+
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
+        if classifier is None:
+            return jsonify({
+                'success': False,
+                'error': '画像分類器が初期化されていません'
+            }), 500
+
         # ファイルが存在するかチェック
         if 'image' not in request.files:
             return jsonify({'success': False, 'error': '画像ファイルが選択されていません'})
