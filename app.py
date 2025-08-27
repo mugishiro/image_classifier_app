@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify, render_template
 import os
-import sys
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -28,12 +27,6 @@ def index():
 def health():
     """ヘルスチェック用エンドポイント"""
     try:
-        if classifier is None:
-            return jsonify({
-                'status': 'unhealthy',
-                'message': 'Image classifier not initialized'
-            }), 500
-        
         return jsonify({
             'status': 'healthy',
             'message': 'Image Classifier App is running'
@@ -99,6 +92,6 @@ def predict():
 
 if __name__ == '__main__':
     print("画像分類アプリを起動中...")
-    print("ブラウザで http://localhost:5000 にアクセスしてください")
     port = int(os.environ.get('PORT', 5000))
-    app.run(debug=True, host='0.0.0.0', port=port)
+    print(f"ポート: {port}")
+    app.run(debug=False, host='0.0.0.0', port=port)
