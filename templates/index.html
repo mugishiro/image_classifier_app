@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyTorch画像分類アプリ</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            background-color: #fafafa;
+            transition: border-color 0.3s;
+        }
+
+        .upload-area:hover {
+            border-color: #007bff;
+        }
+
+        .upload-area.dragover {
+            border-color: #007bff;
+            background-color: #e3f2fd;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .upload-btn {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        .upload-btn:hover {
+            background-color: #0056b3;
+        }
+
+        #preview {
+            max-width: 100%;
+            max-height: 400px;
+            margin: 20px auto;
+            display: block;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .result {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+
+        .prediction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .confidence-bar {
+            width: 100px;
+            height: 8px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background-color: #28a745;
+            transition: width 0.3s;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .error {
+            color: #dc3545;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 PyTorch画像分類アプリ</h1>
+
+        <div class="upload-area" id="uploadArea">
+            <p>📁 画像をドラッグ&ドロップするか、クリックして選択してください</p>
+            <input type="file" id="fileInput" accept="image/*">
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                画像を選択
+            </button>
+        </div>
+
+        <img id="preview" style="display: none;">
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const result = document.getElementById('result');
+
+        // ドラッグ&ドロップ機能
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('画像ファイルを選択してください');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                predictImage(file);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function predictImage(file) {
+            result.innerHTML = '<div class="loading">🔄 分析中...</div>';
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayResults(data.predictions);
+                } else {
+                    result.innerHTML = `<div class="error">❌ エラー: ${data.error}</div>`;
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="error">❌ エラー: ${error.message}</div>`;
+            }
+        }
+
+        function displayResults(predictions) {
+            let html = '<div class="result">';
+            html += '<h3>🎯 予測結果</h3>';
+
+            predictions.forEach((pred, index) => {
+                const percentage = (pred.probability * 100).toFixed(1);
+                const emoji = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+
+                html += `
+                    <div class="prediction-item">
+                        <div>
+                            <strong>${emoji} ${pred.class}</strong>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: ${percentage}%"></div>
+                            </div>
+                            <span>${percentage}%</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            result.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
