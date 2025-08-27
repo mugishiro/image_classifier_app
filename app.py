@@ -1,53 +1,56 @@
-from flask import Flask, render_template, request, jsonify
-from image_classifier import ImageClassifier
-import base64
-import io
-from PIL import Image
+from flask import Flask, request, jsonify, render_template
 import os
+from werkzeug.utils import secure_filename
+from image_classifier_onnx import ImageClassifierONNX
 
 app = Flask(__name__)
-classifier = ImageClassifier()
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10MB制限
 
-# アップロードされた画像を保存するフォルダ
+# 画像分類器を初期化
+classifier = ImageClassifierONNX()
+
+# アップロードフォルダの作成
 UPLOAD_FOLDER = 'uploads'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 @app.route('/')
 def index():
-    """メインページを表示"""
     return render_template('index.html')
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    """画像を分類するAPIエンドポイント"""
     try:
-        # 画像データを取得
-        if 'image' in request.files:
-            # ファイルアップロード
-            file = request.files['image']
-            image = Image.open(file.stream).convert('RGB')
-        else:
-            # Base64エンコードされた画像
-            image_data = request.json['image']
-            image_data = image_data.split(',')[1]
-            image_bytes = base64.b64decode(image_data)
-            image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+        # ファイルが存在するかチェック
+        if 'image' not in request.files:
+            return jsonify({'success': False, 'error': '画像ファイルが選択されていません'})
 
-        # 一時ファイルとして保存
-        temp_path = os.path.join(UPLOAD_FOLDER, 'temp.jpg')
-        image.save(temp_path)
+        file = request.files['image']
 
-        # 予測実行
-        results = classifier.predict(temp_path)
+        # ファイル名が空でないかチェック
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'ファイルが選択されていません'})
+
+        # ファイル形式をチェック
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff'}
+        if not ('.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
+            return jsonify({'success': False, 'error': '対応していないファイル形式です'})
+
+        # ファイルを保存
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(filepath)
+
+        # 画像分類を実行
+        predictions = classifier.predict(filepath)
 
         # 一時ファイルを削除
-        os.remove(temp_path)
+        os.remove(filepath)
 
-        if results:
+        if predictions:
             return jsonify({
                 'success': True,
-                'predictions': results
+                'predictions': predictions
             })
         else:
             return jsonify({
@@ -56,9 +59,10 @@ def predict():
             })
 
     except Exception as e:
+        print(f"エラー: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': f'予測に失敗しました: {str(e)}'
         })
 
 if __name__ == '__main__':

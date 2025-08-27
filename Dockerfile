@@ -1,4 +1,4 @@
-# 軽量版Dockerfile for Railway
+# 軽量版Dockerfile for Railway (ONNX Runtime版)
 FROM python:3.10-slim
 
 # 作業ディレクトリを設定
@@ -8,20 +8,19 @@ WORKDIR /app
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     gcc \
-    g++ \
     && rm -rf /var/lib/apt/lists/*
 
 # requirements.txtをコピー
 COPY requirements.txt .
 
-# PyTorch CPU版をインストール（軽量版）
-RUN pip install --no-cache-dir torch==2.8.0+cpu torchvision==0.23.0+cpu torchaudio==2.8.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
-
-# その他の依存関係をインストール
-RUN pip install --no-cache-dir flask==3.1.1 pillow==9.0.1 numpy==2.2.6 gunicorn==21.2.0
+# 依存関係をインストール
+RUN pip install --no-cache-dir -r requirements.txt
 
 # アプリケーションファイルをコピー
 COPY . .
+
+# アップロードフォルダを作成
+RUN mkdir -p uploads
 
 # ポートを公開
 EXPOSE 5000

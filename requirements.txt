@@ -1,7 +1,5 @@
-# PyTorch CPU版（軽量版）
-torch==2.8.0+cpu
-torchvision==0.23.0+cpu
-torchaudio==2.8.0+cpu
+# ONNX Runtime版（軽量）
+onnxruntime==1.16.3
 
 # Webフレームワーク
 flask==3.1.1
