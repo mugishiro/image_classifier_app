@@ -1,14 +1,15 @@
-# マルチステージビルドでサイズを削減
-FROM python:3.10-slim as builder
-
-# ビルド依存関係をインストール
-RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
+# 軽量版Dockerfile for Railway
+FROM python:3.10-slim
 
 # 作業ディレクトリを設定
 WORKDIR /app
+
+# システムパッケージを最小限に更新
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 # requirements.txtをコピー
 COPY requirements.txt .
@@ -17,22 +18,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir torch==2.8.0+cpu torchvision==0.23.0+cpu torchaudio==2.8.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
 
 # その他の依存関係をインストール
-RUN pip install --no-cache-dir -r requirements.txt
-
-# 本番用イメージ
-FROM python:3.10-slim
-
-# 必要なシステムライブラリをインストール
-RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-
-# ビルドしたPythonパッケージをコピー
-COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+RUN pip install --no-cache-dir flask==3.1.1 pillow==9.0.1 numpy==2.2.6 gunicorn==21.2.0
 
 # アプリケーションファイルをコピー
 COPY . .

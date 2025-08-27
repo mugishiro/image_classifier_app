@@ -1,13 +1,14 @@
-# Option 1: PyTorch CPU (軽量版)
+# PyTorch CPU版（軽量版）
 torch==2.8.0+cpu
 torchvision==0.23.0+cpu
 torchaudio==2.8.0+cpu
 
-# Option 2: さらに軽量な選択肢（コメントアウト）
-# onnxruntime==1.16.3
-# tensorflow-lite==2.14.0
-
+# Webフレームワーク
 flask==3.1.1
-pillow==9.0.1
-numpy==2.2.6
 gunicorn==21.2.0
+
+# 画像処理
+pillow==9.0.1
+
+# 数値計算
+numpy==2.2.6
